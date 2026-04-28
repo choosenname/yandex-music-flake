@@ -27,11 +27,5 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Build package
-        run: nix build .#yandex-music --no-link
-
-      - name: Build update script checks
-        run: nix build .#checks.x86_64-linux.update-script --no-link
-
-      - name: Check flake metadata
-        run: nix flake check --no-build
+      - name: Check project
+        run: make check

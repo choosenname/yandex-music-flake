@@ -1,0 +1,38 @@
+name: Auto Update
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  auto-update:
+    name: Check latest version and update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v6
+        with:
+          ref: master
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Resolve latest version
+        id: version
+        run: .github/scripts/resolve-yandex-music-version.sh
+
+      - name: Update package metadata
+        if: steps.version.outputs.update-needed == 'true'
+        run: make update VERSION="${{ steps.version.outputs.latest-version }}"
+
+      - name: Commit update
+        if: steps.version.outputs.update-needed == 'true'
+        run: .github/scripts/commit-yandex-music-update.sh "${{ steps.version.outputs.latest-version }}"
