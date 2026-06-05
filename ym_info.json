@@ -1,6 +1,6 @@
 {
-  "version": "5.105.2",
-  "deb_name": "Yandex_Music_amd64_5.105.2.deb",
-  "deb_link": "https://desktop.app.music.yandex.net/stable/Yandex_Music_amd64_5.105.2.deb",
-  "deb_hash": "sha256-+WWIuRbF/kOOoQgONz0llBLiXewh5FNMJvUPDy3ZbTE="
+  "version": "5.105.3",
+  "deb_name": "Yandex_Music_amd64_5.105.3.deb",
+  "deb_link": "https://desktop.app.music.yandex.net/stable/Yandex_Music_amd64_5.105.3.deb",
+  "deb_hash": "sha256-0uvIxUYKHZjRMwKmVQdmeEU4MRBeqZLHIJS59qhEQbY="
 }
