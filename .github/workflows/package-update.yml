@@ -1,0 +1,88 @@
+name: Package update
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: yandex-music-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v6
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Recover current release
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/commit-yandex-music-update.sh retry "$(jq -r .version ym_info.json)"
+
+      - name: Publish current release
+        if: steps.current.outputs.tag != ''
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
+        with:
+          tag_name: ${{ steps.current.outputs.tag }}
+          target_commitish: ${{ steps.current.outputs.commit }}
+          generate_release_notes: true
+
+      - name: Resolve latest version
+        if: inputs.version == ''
+        id: latest
+        run: .github/scripts/resolve-yandex-music-version.sh
+
+      - name: Select version
+        id: version
+        env:
+          REQUESTED: ${{ inputs.version }}
+          LATEST: ${{ steps.latest.outputs.latest-version }}
+        run: |
+          version="${REQUESTED:-$LATEST}"
+          [[ "$version" =~ ^[0-9]+(\.[0-9]+)+$ ]] || { echo "Invalid version" >&2; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$version" != "$(jq -r .version ym_info.json)" ]]; then
+            echo "update=true" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$REQUESTED" && "${{ steps.current.outputs.tag_exists }}" != true ]]; then
+            echo "update=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Nix
+        if: steps.version.outputs.update == 'true'
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Update package metadata
+        if: steps.version.outputs.update == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: make update VERSION="$VERSION"
+
+      - name: Check and push update
+        if: steps.version.outputs.update == 'true'
+        id: push
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: .github/scripts/commit-yandex-music-update.sh update "$VERSION"
+
+      - name: Publish update
+        if: steps.push.outputs.tag != ''
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
+        with:
+          tag_name: ${{ steps.push.outputs.tag }}
+          target_commitish: ${{ steps.push.outputs.commit }}
+          generate_release_notes: true

@@ -4,6 +4,35 @@
   lib,
   binutils,
   makeWrapper,
+  autoPatchelfHook,
+  stdenv,
+  alsa-lib,
+  at-spi2-atk,
+  cairo,
+  cups,
+  dbus,
+  expat,
+  glib,
+  gtk3,
+  nss,
+  nspr,
+  pango,
+  libgbm,
+  libxkbcommon,
+  systemd,
+  libx11,
+  libxcb,
+  libxcomposite,
+  libxdamage,
+  libxext,
+  libxfixes,
+  libxrandr,
+  libGL,
+  libnotify,
+  libsecret,
+  libpulseaudio,
+  pipewire,
+  speechd-minimal,
 }:
 
 let
@@ -21,6 +50,41 @@ stdenvNoCC.mkDerivation rec {
   nativeBuildInputs = [
     binutils
     makeWrapper
+    autoPatchelfHook
+  ];
+
+  buildInputs = [
+    stdenv.cc.cc.lib
+    alsa-lib
+    at-spi2-atk
+    cairo
+    cups
+    dbus
+    expat
+    glib
+    gtk3
+    nss
+    nspr
+    pango
+    libgbm
+    libxkbcommon
+    systemd
+    libx11
+    libxcb
+    libxcomposite
+    libxdamage
+    libxext
+    libxfixes
+    libxrandr
+  ];
+
+  runtimeDependencies = [
+    libGL
+    libnotify
+    libsecret
+    libpulseaudio
+    pipewire
+    speechd-minimal
   ];
 
   passthru.updateScript = ./scripts/update-yandex-music.sh;

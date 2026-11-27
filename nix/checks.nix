@@ -10,6 +10,34 @@
 }:
 
 {
+  runtime-linkage =
+    let
+      package = pkgs.callPackage ../package.nix { };
+    in
+    pkgs.runCommand "yandex-music-runtime-linkage" { nativeBuildInputs = [ pkgs.patchelf ]; } ''
+      set -euo pipefail
+      dir="${package}/opt/Яндекс Музыка"
+      for name in yandexmusic chrome_crashpad_handler chrome-sandbox; do
+        binary="$dir/$name"
+        loader="$(patchelf --print-interpreter "$binary")"
+        case "$loader" in /nix/store/*) ;; *) exit 1 ;; esac
+      done
+      for binary in "$dir/yandexmusic" "$dir/chrome_crashpad_handler" "$dir/chrome-sandbox" "$dir"/*.so*; do
+        rpath="$(patchelf --print-rpath "$binary")"
+        if [ -n "$rpath" ]; then
+          printf '%s\n' "$rpath" | tr ':' '\n' | while IFS= read -r path; do
+            case "$path" in /nix/store/*) ;; *) exit 1 ;; esac
+            case "$(realpath -m -- "$path")" in /nix/store/*) ;; *) exit 1 ;; esac
+          done
+        fi
+        env -i "$loader" --list "$binary" > linkage
+        awk '($2 == "=>" && $3 !~ "^/nix/store/") || ($1 ~ "^/" && $1 !~ "^/nix/store/") { print; bad = 1 } END { exit bad }' linkage
+      done
+      env -i HOME="$TMPDIR" ELECTRON_RUN_AS_NODE=1 "${package}/bin/yandex-music" \
+        -e 'console.log("runtime-ok")' | grep -q '^runtime-ok$'
+      touch "$out"
+    '';
+
   package-structure = pkgs.runCommand "yandex-music-package-structure" { } ''
     grep -q 'ym_info.json' ${packageFile}
     grep -q 'version = ymInfo.version;' ${packageFile}

@@ -2,6 +2,7 @@
 
 check:
 	nix build .#yandex-music --no-link
+	nix build .#checks.x86_64-linux.runtime-linkage --no-link
 	nix build .#checks.x86_64-linux.update-script --no-link
 	nix flake check --no-build
 
